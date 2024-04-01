@@ -1,0 +1,13 @@
+Data collected by Hamid for modeling in December 2023.
+
+Contains six different movements:
+-Left Foot to Right Eye
+-Right Foot to Left Eye 
+-Eating Motion
+-Push Motion
+-Horizontal Movement
+-Vertical Movement
+
+The thresholds in this data go from 65 to 10.
+
+There are three folders within that contain data from 3 different people.
