@@ -11,3 +11,7 @@ Contains six different movements:
 The thresholds in this data go from 65 to 10.
 
 There are three folders within that contain data from 3 different people.
+
+Data collected from:
+-Base Device
+-IMU Sensors
