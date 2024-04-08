@@ -1,0 +1,16 @@
+Data for UR paper on testing Fuzzy Controller. 
+
+Files are broken up into sen (sensitive), nor (normal), and res (resistant) files. 
+For the horizontal and push tasks a pressure sensor broke and only one was working so it is broken up into bicep and tricep files.
+This is denoted by the letter at the end of the file b = bicep, t = tricep.
+
+Tasks:
+-Horizontal
+-Vertical
+-Pushing
+
+The fuzzy controller was active during these data collections.
+
+Data collected from:
+-Base Device
+-Pressure Sensor 

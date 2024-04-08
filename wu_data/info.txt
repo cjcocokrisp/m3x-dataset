@@ -1,0 +1,19 @@
+This folder contains data collected by Dr. Wu's Lab. 
+The data is formated by sXX where XX is the subject number.
+Some of the later subject's data files do not have labels on what the columns represent and do not follow the M3X bluetooth data string. Some more info is below.
+
+Folders that follow the M3X data string:
+-s01
+-s02
+-s03
+-s04
+-s05
+
+Folders that do not follow the format:
+-s06
+-s07
+-s08
+-s09
+-s01
+
+Some documents about the subjects and procedure were also given and are provided in this folder.

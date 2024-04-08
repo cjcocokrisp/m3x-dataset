@@ -1,0 +1,1086 @@
+
+------------------ MyoPro 2 Bluetooth Communication Protocol ------------------- 
+
+
+/*----------------------------------------------------------------------------*/
+/*------------------------- Protocol Change List -----------------------------*/
+/*----------------------------------------------------------------------------*/
+5.1.12 - 2023/Jan/19
+
+1) Added section on "Dual Mode Configurations" with examples for the commands, 
+   \ez and \ey.
+2) Added a section on "Donning Mode Configurations" with examples for the 
+   commands \eL and \eG
+
+
+/*----------------------------------------------------------------------------*/
+/*----------------------------- Introduction ---------------------------------*/
+/*----------------------------------------------------------------------------*/
+There are two basic sub-protocols contained within this protocol:
+
+    1. Command/Response protocol
+
+    2. Streaming Data protocol
+
+
+The '$' character indicates Command/Response exchanges.
+The '#' character indicates Streaming Data exchanges.
+
+This $ versus # permits the Remote Application to determine the
+data-source and keep them separated.
+
+
+Command/Response Protocol:
+
+    All Commands emanate from a PC/App/Terminal Window.
+
+    All Commands will generate a response from the MyoDevice.
+
+    All Commands are identified by two ascii characters,
+    the first of which is the '$' or '&' character. Commands to the 
+    elbow motor use the '$' character, while commands to the hand
+    motor use the '&' command.
+    
+    All commands will generate a response that contains two strings:
+
+        String 1: The PassFail and Optional Data.  This is an
+            echo-back of the Command, followed by a passfail
+            indication, followed by any optional data.
+            This passfail indicates that the command executed,
+            and it passed or failed.  The optional data is
+            included ONLY if the command passed.  Optional data
+            is usually data that is being polled by the PC.
+
+        String 2: This will always be "$OK\n".  This essentially
+            indicates the MyoDevice is ready for the next cmd.
+
+    The passfail value in the response will typically be 1 or 0 for
+    Pass or Fail respectively.  If the passfail value is a negative
+    number, it is an error code that represents command-rejection
+    for reasons such as improper formatting, unknown, unrecognized,
+    corrupted, etc.  See Command Error Codes below.
+
+    The character-string formatting will have any optional data values
+    separated by a space-character, and all strings are terminated with
+    a '\n' character.
+
+    For example the Get Motor Min and Max command is a 3-char "$u\n"
+    command-string, which generates the following 2-String response:
+
+        "$u 1 242 617\n"
+        "$OK\n"
+
+     where: $ indicates it is a cmdResponse
+        u is the command (all commands are 1 char)
+        1 is the passfail indication (1=pass, 0=fail)
+        242 and 617 are 2 optional returned values.
+
+    The "$OK\n" means the command and response are completed, and the
+    MyoDevice is ready for another command.
+
+    Special Cases:
+        Some commands are meant to retrieve complex data, i.e more
+        than just a couple of simple values.  For example polling
+        for the Serial Number, or the File List, etc.  These commands
+        are indicated in Complex Commands below.
+
+
+Streaming Data Protocol:
+
+    Streaming data is unsolicited data that is autonomously sent from
+    the MyoDevice to the PC.  It is one-way transmission.
+
+    All Streaming Data consists of an identifier that uniquely
+    identifies the streamed data, followed by optional data values
+    that accompany the streamed data.
+
+    All Streaming Data identifiers are two characters, the first of
+    which is the '#' character.
+
+    In the current character-string formatting environment, any optional
+    data values are separated by a space-character, and all strings are
+    terminated with a '\n' character.
+
+
+/*----------------------------------------------------------------------------*/
+/*------------------------------- Commands -----------------------------------*/
+/*----------------------------------------------------------------------------*/
+The follow Section describes the current command-set.
+
+
+Input commands to the MyoDevice:
+
+cmd  = The cmd is a '$' followed by the single-char cmd, followed by
+       optional space-separated data, terminated with a '\n' character.
+        Example - Set LED 7 to State 3: "$a 7 3\n"
+
+
+Output responses from the MyoDevice contain two strings, with the first
+string containing the passfail indication and the optional data.
+The following describes fields that are indicated in the command catalog.
+
+cmd  = An echo-back of the original command, with the '$',
+       used in the first response-string.
+
+passfail = A value that indicates the state/result of the command.
+
+vals     = Optional values that accompany the response.
+
+ok   = The second response-string.  Always "$OK\n"
+
+complex  = This is data that is not the typical one or two integer values.
+       Commands that use, or generate, complex data have specific
+       descriptions and data-formats in the Complex Commands section.
+
+
+/*----------------------------------------------------------------------------*/
+/*------------------------- Simple Commands ----------------------------------*/
+/*----------------------------------------------------------------------------*/
+Simple Commands have one to three simple values for input/output parameters.
+The following are Simple Commands:
+
+
+description                         cmd   val1 val2  response
+------------------------------------------------------------------------------
+Set Mode                            '0'   0-3  ---   passfail/stream data/ok
+Set Bicep Assist Off/Low/Med/Hi     '1'   0-3  ---   passfail/ok
+Set Tricep Assist Off/Low/Med/Hi    '2'   0-3  ---   passfail/ok
+Set Bicep Sensor Gain               '3'   0-3  0-10  passfail/ok
+Set Tricep Sensor Gain              '4'   0-3  0-10  passfail/ok
+Get Bicep and Tricep Sensor Gains   '5'   0-3  ---   passfail/BiGain TrGain/ok
+Enable EMG1/2 Data Stream           '6'   ---  ---   passfail/oldval/ok
+Disable EMG1/2 Data Stream          '7'   ---  ---   passfail/oldval/ok
+Reset Factory Defaults (Device)     '8'   ---  ---   passfail/ok
+Get LED State                       '9'   0-8  ---   passfail/ledN Pct/ok
+
+Set LED Percent                     'a'    complex   passfail/ok
+Read Motor Position in Degrees      'b'   ---  ---   passfail/position/ok
+AutoSet Motor Limits                'c'   ---  ---   passfail/ok
+Move to Max Mechanical Flex         'd'   ---  ---   5-sec dly then passfail/ok
+Move to Max Mechanical Ext          'e'   ---  ---   5-sec dly then passfail/ok
+Get Mode                            'f'   ---  ---   passfail/mode/ok
+Get Battery                         'g'   ---  ---   passfail/battery/ok
+Get Current                         'h'   ---  ---   passfail/current/ok
+Get Thermal (Motor)                 'i'   ---  ---   passfail/thermal/ok
+Repair File System                  'j'   ---  ---   passfail/ok
+
+Set Default DM Bicep Boost Value    'k'   1-3  0-20  passfail/ok
+Set Default DM Tricep Boost Value   'l'   1-3  0-20  passfail/ok
+Get Default DM Bicep Boost Value    'm'   1-3  ---   passfail/value/ok
+Get Default DM Tricep Boost Value   'n'   1-3  ---   passfail/value/ok
+Set Default DM Bicep Thresh Value   'o'   0-20 ---   passfail/ok
+Set Default DM Tricep DThresh Value 'p'   0-20 ---   passfail/ok
+
+Set Real Time Clock (RTC)           'q'    complex   passfail/ok
+Get Real Time Clock (RTC)           'r'   ---  ---   passfail/complex/ok
+Set Serial Number                   's'    complex   passfail/ok
+Get Serial Number                   't'   ---  ---   passfail/complex/ok
+Get Motor Min and Max Degrees       'u'   ---  ---   passfail/min max/ok
+Set Arm Right (1) or Left (2)       'v'   1|2  ---   passfail/ok
+Get Arm                             'w'   ---  ---   passfail/arm/ok
+Get Raw EMG1/2 values (10-bits)     'x'   ---  ---   passfail/emg1 emg2/ok
+Get Bicep/Tricep DM Thresholds      'y'   ---  ---   passfail/Bi Tri/ok
+Restart (100) or Bootloader (200)   'z' 100|200---   passfail/ok
+
+
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+The following are for development purposes only, and not for general use
+
+Set BiSpring Tune value             '-'  float ---   passfail/ok
+Set TriSpring Tune value            '+'  float ---   passfail/ok
+Set GainI Tune value                ';'  float ---   passfail/ok
+Set GainD Tune value                '.'  float ---   passfail/ok
+Set Motor Friction Tune value       ','  0-20  ---   passfail/ok
+Set EMG Sample Rate Tune value      ':'  1-10  ---   passfail/ok
+Set Stream Rate                     '|' 10|20|50|100 passfail/ok
+
+Get Tune Values (all floats)        '#'   ---  ---   
+    passfail gainI gainD biSpring triSpring motFric streamRate emgTime/ok
+
+
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+
+Get Default Bi/Tri Stdby Boost      '%'   ---  ---  passfail/Bi Tri/ok
+Set Default Stdby Bicep Boost       'A'   0-20 ---  passfail/ok
+Set Default Stdby Tricep Boost      'B'   0-20 ---  passfail/ok
+
+Move to Percent-Position(pos,spd)   'C'  0-100 0-100 passfail/ok
+
+Set Default Bicep Boost Value       'D'   1-3  0-20  passfail/ok
+Set Default Bicep Thresh Value      'E'   1-3  0-20  passfail/ok
+Get Default Bicep Boost Value       'F'   1-3  ---   passfail/value/ok
+Get Default Bicep Thresh Value      'G'   1-3  ---   passfail/value/ok
+
+Set Default Tricep Thresh Value     'H'   1-3  0-20  passfail/ok
+Set Default Tricep Boost Value      'I'   1-3  0-20  passfail/ok
+Get Default Tricep Thresh Value     'J'   1-3  ---   passfail/value/ok
+Get Default Tricep Boost Value      'K'   1-3  ---   passfail/value/ok
+
+Enable/Disable Remote Mode          'L'   1|0  ---   passfail/ok
+Get Remote Mode                     'M'   ---  ---   passfail/onoff/ok
+
+Set Remote Bicep Boost Value        'N'   0-20 ---   passfail/ok
+Set Remote Bicep Thresh Value       'O'   0-20 ---   passfail/ok
+Get Remote Bicep Boost Value        'P'   ---  ---   passfail/value/ok
+Get Remote Bicep Thresh Value       'Q'   ---  ---   passfail/value/ok
+
+Set Remote Tricep Thresh Value      'R'   0-20 ---   passfail/ok
+Set Remote Tricep Boost Value       'S'   0-20 ---   passfail/ok
+Get Remote Tricep Thresh Value      'T'   ---  ---   passfail/value/ok
+Get Remote Tricep Boost Value       'U'   ---  ---   passfail/value/ok
+
+Set ROM Ext  Limit %                'V'  0-100 ---   passfail/ok
+Set ROM Flex Limit %                'W'  0-100 ---   passfail/ok
+Get ROM Ext  Limit % and Degrees    'X'   ---  ---   passfail/% deg/ok (see Note 1)
+Get ROM Flex Limit % and Degrees    'Y'   ---  ---   passfail/% deg/ok (see Note 1)
+Get ROM Boundaries in Degrees       'Z'   ---  ---   passfail/deg deg/ok
+
+Run PWM Test Mode                   '='   ---  ---   passfail/ok
+
+Log value: rawEMG   (0),        '('   0-7  0-N   passfail/ok
+       rmsEMG   (1),                 N = 10 mSec increment
+       sampleET (2),
+       current  (3),
+       thermal  (4),
+       pctPWM   (5),
+       position (6),
+       battery  (7)
+
+Abort Command                       ')'   ---  ---   passfail/ok
+
+Suspend                             '<'   ---  ---   passfail/ok
+Resume                              '>'   ---  ---   passfail/ok
+
+Retrieve File List (ascii)          '{'   ---  ---   passfail/complex/ok
+
+Test Command                        '}'   opt  ---   passfail/ok
+
+Enable/Disable Debug #d stream      '['   1|0  ---   passfail/ok
+Get Firmware Version                ']'   ---  ---   passfail/mjr mnr rev/ok
+
+Get DevType                         '\'   ---  ---   passfail/ok 0|1|2
+
+Read Sled Pos & Tare (Belt Tension) '*'   ---  ---   passfail/value tareFlag/ok
+Move Sled to Pos (Belt Tension)     '&'   val  ---   passfail/ok
+
+Demo fatalError errCode 0xF00F      '~'   ---- ---   passfail/must power-cycle
+Toggle Motor Cycling on/off         '@'   ---- ---   passfail/ok
+
+Enable/Disable Mfg Test Mode        '!'   1|0  ---   passfail/oldval/ok
+                             (mfg-only)
+
+Verify SD-card presence             '^'   ---  ---   passfail/ok
+
+
+/*----------------------------------------------------------------------------*/
+/*------------------------- Complex Commands ---------------------------------*/
+/*----------------------------------------------------------------------------*/
+Complex Commands have complex data for input and/or output parameters.
+
+
+      /*----------------------------------------------------------------*/
+Set LED Percent                     'a'   0-7 0|1 0-100  passfail/ok
+        where:
+            The first parameter 0-7 selects 1 of 8 LEDs.
+
+            The second parameter 0|1 selects off=0 or on=1.
+
+            The third parameter is the %PWM, where 0% is
+            full-off, and 100% is full-on.
+
+
+        Example: Set LED #4 on and 50% PWM.
+
+            Command  = "$a 4 1 50\n"
+
+            Response = "$a 1\n", "$OK\n"
+
+        Note that a running system is continually updating the LEDs,
+        so to gain full control, you should enable Mfg Test Mode
+        with the $! command.
+
+      /*----------------------------------------------------------------*/
+Set Real Time Clock (RTC)           'q'    7values   passfail/ok
+
+        Complex input contains 7 values of the form:
+
+            "mon day year wday hour min sec"
+
+        where the values are the same as defined for a tm-struct,
+        except that the year is restricted to 100-299 (2000-2199):
+
+            mon  =   0 -  11 (months since January)
+            day  =   1 -  31
+            year = 100 - 299 (years since 1900)
+            wday =   0 -   6 (days since Sunday)
+            hour =   0 -  23
+            mins =   0 -  59
+            secs =   0 -  59
+
+
+        Example: Set Oct 20 2013 Sun 16:53:32
+
+            Command  = "$q 9 20 113 0 16 53 32\n"
+
+            Response = "$q 1\n", "$OK\n"
+
+      /*----------------------------------------------------------------*/
+Get Real Time Clock (RTC)           'r'   ---  ---   passfail/7 values/ok
+        Complex output contains 7 values of the same form as
+            the Set-command:
+
+            "mon day year wday hour min sec"
+        where:
+            mon  =   0 -  11 (months since January)
+            day  =   1 -  31
+            year = 100 - 299 (years since 1900)
+            wday =   0 -   6 (days since Sunday)
+            hour =   0 -  23
+            mins =   0 -  59
+            secs =   0 -  59
+
+        Example:
+            Command  = "$r\n"
+
+            Response = "$r 1 9 20 113 0 16 53 32\n", "$OK\n"
+
+
+      /*----------------------------------------------------------------*/
+Set Serial Number                   's'    complex   passfail/ok
+        Complex input is the 8-char alphanumeric serial number
+
+        Example:
+            Command  = "$s RM000035\n"
+
+            Response = "$s 1\n", "$OK\n"
+
+
+      /*----------------------------------------------------------------*/
+Get Serial Number                   't'   ---  ---   passfail/complex/ok
+        Complex output is string-data of the form:
+            "8-byte ascii serial number\n" with null-terminator 
+
+        Example:
+            Command  = "$s\n"
+
+            Response = "$t 1 RM000035\n", "$OK\n"
+
+
+      /*----------------------------------------------------------------*/
+Retrieve File List (ascii)          '{'   ---  ---   passfail/complex/ok
+
+        Complex output is simple string data listing filenames
+        and their lengths in bytes.
+
+
+      /*----------------------------------------------------------------*/
+EMG Route                           '\e7'    complex   passfail/ok
+        There are 2 EMG channels, but 5 possible signals on
+        each channel:
+            0 - normal/default
+            1 - emgChnl 1
+            2 - emgChnl 2
+            3 - internally-generated triangle
+            4 - internally-generated sawtooth
+
+        Complex input is a 2-digit decimal value, with each digit
+        representing which signal to put on which channel, with the
+        high-to-low digits being chnl2-to-chnl1.  If a chnl-number
+        (2,1) is in its home digit-location, the result is the same
+        as a 0 in that digit-location, so 00 and 21 are equivalent.
+
+        Example:
+            00/21:       default EMG on all chnls
+            30/31:       tri on 2, def on 1
+            10/11:       1 on 2, def on 1
+            12:      1 on 2, saw on 1
+
+/*----------------------------------------------------------------------------*/
+/*------------------------------- Stream Data --------------------------------*/
+/*----------------------------------------------------------------------------*/
+Stream-Data:
+
+#B int          Boost
+#T int          Threshold
+#M int          Mode
+#R int          Remote on/off
+#3 int          FlxGain[Mode]
+#4 int          ExtGain[Mode]
+#o int          Dual Mode Flx Threshold
+#p int          Dual Mode Ext Threshold
+
+
+#x float float      --> ExtEMG FlxEMG
+
+#y int float        --> MotPosDegrees MotThermalFahrenheit
+
+#z float float int  --> Bat%Capacity BatAmps WarningBitMap
+
+
+/*----------------------------------------------------------------------------*/
+/*------------------------- Command Error Codes ------------------------------*/
+/*----------------------------------------------------------------------------*/
+Error codes can be sent for the passfail value if there is a problem.
+Normally, passfail = 1 or 0 for Pass or Fail respectively.  A negative
+number is an error:
+
+    -1  A required command parameter is not present or
+        its value is out of bounds
+
+    -2  Unknown/Unrecognized command
+
+    -3  Motor Limits not set.  Most functionality depends on knowing
+        the Motor Limits of the MyoDevice.  The "$c" command will
+        find and set the Motor Limits.
+
+    -4  Command overflow.  Too many characters.
+
+    -5  Tx-error at MyoDevice UART.
+
+    -6  Rx-error at MyoDevice UART.
+
+    -7  DevType (Elbow or Hand) is not set.  This needs to be set
+        before anything else can be set.
+
+    -8  The command (or option) is unnavailable at this time.
+
+
+
+/*----------------------------------------------------------------------------*/
+/*---------------------- Extended Command Protocol ---------------------------*/
+/*----------------------------------------------------------------------------*/
+Extended commands are just like the regular commands except that they are
+preceded by a "$ESC" where ESC is the one-byte ESC-char \e.
+
+For example to set the Unique Name with the Extended 's' Command:
+
+    "$ESCs My_Unique_Name\n"
+
+
+/*----------------------------------------------------------------------------*/
+The following Extended Commands cannot be used in a terminal-window because
+they use a special transfer protocol.  These commands, and the associated
+transfer protocol is supported in the Backend.  All filenames should be in
+the 8.3 format, or more generally, 12 characters or less:
+
+Upload a file to SD-card            '\eu'   filename   passfail/ok
+Download a file from SD-card        '\ed'   filename   passfail/ok
+List files on SD-card               '\el'   ---  ---   passfail/ok
+
+
+/*----------------------------------------------------------------------------*/
+The following Extended Commands are compatible with a terminal-window.
+All filenames should be in the 8.3 format, or 12 characters or less:
+
+Erase a file from SD-card           '\ee'   filename   passfail/ok
+Run script-file on SD-card          '\er'   filename   passfail/ok
+
+Get donning mode parameters         '\eG'   --- ---    passfail/ok
+Write donning mode parameters       '\eL'   complex    passfail/4 values/ok
+
+Get Dual Mode parameters            '\ez'   --- ---    passfail/ok
+Write Dual Mode parameters          '\ey'   complex    passfail/16 values/ok
+Configure runtime parameters        '\e!'   complex    passfail/ok
+
+Get additional PID parameters       '\eb'   --- ---    passfail/ok
+Write additional PID parameters     '\ec'   complex    passfail/3 values/ok
+Set PID Settings                    '\eU'  see below   passfail/result/ok
+Get PID Settings                    '\eV'  see below   passfail/result/ok
+Enable/Disable PID Control          '\eW'   1|0  ---   passfail/oldval/ok
+On-the-fly PID Tuning               '\eX'  see below   passfail/result/ok
+
+Read Motor Limits                   '\eA'   ---  ---   passfail/12 values/ok
+Write Motor Limits                  '\eB'   12 values  passfail/ok
+
+AutoConfig DevType Elbow=1, Hand=2  '\eC'   1|2  ---   passfail/ok
+Reset Factory Defaults (System)     '\eH'   ---  ---   passfail/ok
+Set Default Mode                    '\eM'   0-3  ---   passfail/ok
+Get Default Mode                    '\eN'   ---  ---   passfail/0-3/ok
+
+Set Unique Name                     '\es'    complex   passfail/ok
+Get Unique Name                     '\et'   ---  ---   passfail/complex/ok
+
+EMG Signal Processing Bypass        '\e0'   0-2  0|1   passfail/ok
+    p1: 0 Both, 1 EMG1, 2 EMG2
+    p2: 0 Off, 1 On
+
+Tune Smooth-Filter params           '\e1'   see below
+Tune Freq-Filter params             '\e2'   see below
+
+Read Smoothing Filtering params     '\e3'   see below
+Read Freq Filtering params          '\e4'   see below
+
+Install Smoothing Filter            '\e5'   see below
+Install Frequence Filter            '\e6'   see below
+
+EMG Route                           '\e7'    complex   passfail/ok
+
+Set Max Motor Drive                 '\e8'  0-100 ---   passfail/ok
+Get Max Motor Drive                 '\e9'   ---  ---   passfail/percent/ok
+
+Enable/Disable Instrumentation      '\ei'   0-3  ---   passfail/ok (debug only)
+Set Installed Devices               '\ej'   1|3  ---   passfail/ok
+Get Installed Devices               '\ek'   ---  ---   passfail/ok
+Enable/Disable Proportional Mode    '\ep'   1|0  ---   passfail/oldmode/ok
+Get Rms EMG1/2 values (ints)        '\ex'   ---  ---   passfail/emg1 emg2/ok
+
+Turbo Mode Disable|Enable Rms|Raw   '\eR'   0|1  0|1   passfail/oldmode/ok
+
+Set Battery Ship Mode               '\eS'   ---  ---   passfail/ok
+Run Hardware Test (Mfg Testing)     '\eT'  tstID val   passfail/result/ok
+Set ROM Boundaries in Degrees       '\eZ'   ext  flx   passfail/ok
+
+Set Motor Factor                    '\eg'  1-500 ---   passfail/ok
+Get Motor Factor                    '\eh'   ---  ---   passfail/int/ok
+
+
+/*----------------------------------------------------------------------------*/
+/*-------------------------- Filter Controls ---------------------------------*/
+/*----------------------------------------------------------------------------*/
+There are two sets of filters - Frequency Filters and Data Filters.
+Although the Freq Filters are present, they are not likely needed,
+and are OFF by default.  The Freq Filters are applied at the output
+of the A/D converters and before the Sensor processing.
+
+The Data Filters are those that have the greatest effect on the final
+EMG output values.  The Data Filters are applied at the output of the
+EMG processing.
+
+There are 5 types of Data Filters in addition to OFF, and they can be
+installed (or not) on all Sensor channels.  By default, the System boots
+up with a Kalman 0.001 20.0 Data Filter installed on all channels
+
+The filter-control commands are two types - filter installation, and
+filter tuning.  Filter installation will make the system auto-reboot,
+because establishing the filter is a boot-procedure.  Filter tuning
+can be done on the fly, while the system is running, and results observed
+immediately.
+
+All Filter settings are persistent.
+
+
+/*-------------------------- Filter Installation -----------------------------*/
+To install a new Data Filter, use the $\e5 extended command.  The command
+requires 5 parameters for filter-installation.  Not all parameters apply to
+all filter-types:
+
+    p1 = 0-1     (int)   Tricep 0, Bicep 1
+
+    p2 = 0-5     (int)   Smooth Type: OFF        0
+                      EASING     1
+                      MEAN       2
+                      MEAN_FLOOR 3
+                      MEDIAN     4
+                      KALMAN     5
+
+    p3 = 0-500   (int)   depthN:      EASING     ignored
+                      MEAN       N (max=500)
+                      MEAN_FLOOR N (max=500)
+                      MEDIAN     N (max=500)
+                      KALMAN     ignored
+
+    p4 = fVal1   (float) param1:      EASING     easeFactor
+                      MEAN       initVal
+                      MEAN_FLOOR initVal
+                      MEDIAN     initVal
+                      KALMAN     Q
+
+    p5 = fVal2   (float) param2:      EASING     easeThresh
+                      MEAN       ignored
+                      MEAN_FLOOR floorVal
+                      MEDIAN     kVal
+                      KALMAN     R
+
+For example, install a Kalman on the Bicep channel with Q=0.001 and R=20.0:
+
+    $\e5 1 5 0 0.001 20.0
+
+To turn off a Filter and uninstall it, only 2 parameters are needed.
+The following will uninstall the Data Filter on the Bicep channel:
+
+    $\e5 1 0
+
+
+/*-------------------------- Filter Tuning -----------------------------------*/
+You can tweak/tune some of the parameters of a filter after it has been
+installed and running.  You do not necessarily have to reinstall a filter,
+depending on the parameter.  Three parameters are required:
+
+To tune a Freq Filter, use the $\e2 command:
+
+    p1 = 0-1     (int)  Tricep 0, Bicep 1
+
+    p2 = 1-200   (int)  New Cutoff Freq.
+                      KALMAN     Q
+
+    p3 = fVal   (float) New Q
+
+    To change the filter-type, you must do a new Filter Installation.
+
+
+To tune a Data Filter, use the $\e1 command.  The command requires three
+parameters, but not all parameters apply to all filters-types:
+
+    p1 = 0-1     (int)   Tricep 0, Bicep 1
+
+    p2 = fVal1   (float) param1:      EASING     easeFactor
+                      MEAN       initVal
+                      MEAN_FLOOR initVal
+                      MEDIAN     initVal
+                      KALMAN     Q
+
+    p3 = fVal2   (float) param2:      EASING     easeThresh
+                      MEAN       ignored
+                      MEAN_FLOOR floorVal
+                      MEDIAN     kVal
+                      KALMAN     R
+
+For example, to change the Q of the Kalman to 0.002, but keep the old R:
+
+    $\e1 1 0.002 20.0
+
+
+Suggestions - The following are suggestions, with examples applied to the
+Bicep channel:
+
+    EASING - almost as effective as a Kalman.  Use small parameters
+        for p2 and p3, i.e. p2=0.01, p3=0.1
+
+            $\e5 1 1 0 0.01 0.1
+
+
+    MEAN - a simple moving-average window where depthN set the size of
+        the window.  A shorter window follows the EMG more closely.
+
+            $\e5 1 2 100 0 0
+
+
+    MEAN_FLOOR - same as a MEAN, but sets a floor-limit on the EMG output.
+        The output will never go lower than the floor.  Note that the
+        EMG values sent in the streaming data is scaled, so any floor
+        set here will not necessarily be visible in the stream.
+
+            $\e5 1 3 100 10 10
+
+
+    MEDIAN - uses a moving window and selects the kth value out of all
+        the window-values after they've been sorted low-to-high.
+        The window should be an odd-depth and k should be half.
+
+            $\e5 1 4 101 0 50
+
+    KALMAN - This is the default filter, with Q=0.001 and R=20.0.  Use a
+        small Q, and R > 1, although they can be any value.
+
+            $\e5 1 5 0 0.001 20.0
+
+
+Concerning selecting the Q and R values of the Kalman Filter, recommend
+reading the following paper, especially the last 4 pages:
+
+    "An Introduction to the Kalman Filter" by Greg Welch and Gary Bishop
+
+       "Presuming a very small process variance, we let Q = 1e-5.  (We could 
+    certainly let Q = 0 but assuming a small but non-zero value gives us
+    more flexibility in tuning the filter..."
+
+    In the above quoted paper, they used an initial R of 0.01.
+    As R increases by a factor of 100, to 1.0 (the measurment variance
+    becomes greater), the filter is "slower" to believe the measurements.
+    As R decreases by a factor of 100, to 0.0001 (measurement variance
+    becomes smaller), the filter is very "quick" to believe the noisy
+    measurements.
+
+
+/*-------------------------- Filter Reading ----------------------------------*/
+Read back the current filter and its run-parameters.
+
+Use the $\e3 command to read back Data Filters:
+Use the $\e4 command to read back Freq Filters:
+
+    p1 = 0-1     (int)   Tricep 0, Bicep 1
+
+Data Filter example:
+    To read the Bicep Data Filter parameters:
+
+        $\e3 1
+
+    Assuming the Kalman Filter is currently installed, this returns
+    the same parameters as used in the $\e5 filter installation command,
+    with the exception of the filter type:
+
+        1 205 0 0.0010 20.0000
+
+    where:    1      = Bicep
+        205      = Kalman
+          0      = ignored for Kalman
+          0.0010 = Q
+         20.0000 = R
+
+
+    Filter-types:
+        OFF        = 0
+        EASING     = 200
+        MEAN       = 201
+        MEAN_FLOOR = 202
+        MEDIAN     = 204
+        KALMAN     = 205
+
+Freq Filter example:
+    To read the Tricep Freq Filter parameters:
+
+        $\e4 0
+
+    Assuming an LPF Filter, order-3, 80Hz, Q-0.5 Freq Filter is currently
+    installed, this returns the same parameters as used in the $\e6 filter
+    installation command, with the exception of the filter type:
+
+        0 102 3 80 0.5000
+
+    where:    0      = Tricep
+        102      = LPF
+          3  = Order
+         80      = cutoff freq
+          0.5000 = Q
+
+
+    Filter-types:
+        LPF = 102
+        HPF = 103
+        BPF = 104
+        NOTCH   = 107
+
+
+/*----------------- Sensor Channel Routing and Bypassing ---------------------*/
+This command permits Sensor filtering and processing to be better-viewed
+with and without signal processing.  It lets us virtually short-circuit
+one Sensor channel to another so we can observe the same signal on another
+channel.
+
+In combination with the Bypass command, this permits bypassing all
+processing on a particular Sensor channel.  If both routing and bypass
+are true on the same channel, the raw value of a Sensor signal will be
+sent into another Sensor channel without processing.
+
+It is the combination of routing and bypassing that lets us see the
+before/after processing of EMG signal-processing at the App.
+
+About the route value:
+There are 2 EMG channels, but 5 possible signals on each channel:
+
+    0 - normal/default
+    1 - emgChnl 1
+    2 - emgChnl 2
+    3 - internally-generated triangle
+    4 - internally-generated sawtooth
+
+The route value holds a 2-digit decimal value, with each digit
+representing which signal to put on which channel, with the high-to-low
+digits being chnl2-to-chnl1.  If a chnl-number (2,1) is in its home
+digit-location, the result is the same as a 0 in that digit-location,
+so 00 and 21 are equivalent.
+
+For example:
+    00/21:       default EMG on all chnls
+    30/31:       tri on 2, def on 1
+    10/11:       1 on 2, def on 1
+    12:      1 on 2, saw on 1
+
+    $\e7 routeVal
+
+The feature auto-reverts back to normal as soon as bluetooth is disconnected.
+It is NOT persisent across power-cycles or connection-sessions.
+
+
+/*--------------------------- PID Settings -----------------------------------*/
+There are 6 PID-related commands:
+
+    $\eU - write all PIDCtrl values at once
+
+    $\eV - read back all PIDCtrl values
+
+    $\eW - enable/disable PIDCtrl, returns passfail and the old setting.
+
+    $\eX - On-the-fly PID Tuning of Kp, Ki, Kd, POn
+
+    $\eb - Get Additional PID Settings (new on MyoPro 2)
+
+    $\ec - Write additional PID Settings (new on MyoPro 2)
+    
+PIDCtrl settings are saved in the EEPROM.  The Elbow and Hand Motor
+Controls are independent of each other.
+
+$\eU - Write all PIDCtrl values
+$\eV - Read all PIDCtrl values
+
+    The PID Motor Control uses 10 configuration parameters.
+    The defaults are chosen to closely approximate the OpenLoop operation.
+    The first 4 parameters are integers.
+    The next 4 parameters are floating point values.
+    The last 2 values are integers.
+
+    enable - OpenLoop(0), PIDCtrl(1)
+            default = 0
+
+    inputSelect - BracePos(0), BraceSpd (1), MotorPos (2), MotorSpd (3)
+            default = 0
+
+    setptSelect - OpenLoop value(0), PIDCtrl value(1)
+            default = 0
+
+    direction - (0 or 1) inverts the sense of the input to the PID output.
+            default = 0
+
+    Kp, Ki, Kd - traditional PID Tuning gain values.
+            default = 1.0, 0.0, 0.0
+
+    POn - the Setpoint Weighting.  The Setpoint can be 100% PoE (1.0),
+        100% PoM (0.0), or a ratio of both.  For example, you can
+        have 25% PoE and 75% PoM by setting POn to 0.25.
+        100% PoE (1.0) is the default.
+            default = 1.0
+
+    outMin/outMax - the PID Output capping in percent -100 to +100.
+            default = -100/+100
+
+    The following is the order of the parameters on the cmdLine for
+    both $\eU and $\eV.  Note that the $\eU command can potentially
+    enable/disable PIDCtrl too, whereas the $\eW command will just
+    just enable/disable it:
+
+    int enable      : OrignalAlgo(0), PIDCtrl(1)
+    int inputSelect : BracePos(0), BraceSpd(1), MotorPos(2), MotorSpd(3)
+    int setptSelect : OpenLoop value(0), PIDCtrl value(1)
+    int direction   : direct(0) or inverted output(1)
+    float Kp    : Kp gain value (Default 0.0)
+    float Ki    : Ki gain value (Default 0.0)
+    float Kd    : Kd gain value (Default 0.0)
+    float POn   : ratio PoE(1.0) and PoM(0.0) (Default 1.0 = 100% PoE)
+    int outMin  : minimum value sent to PWM (Default -100%)
+    int outMax  : maximum value sent to PWM (Default +100%)
+    
+    Example: enable PIDCtrl, MotorSpd, OpenLoop, direct output,
+        Kp=1.0, Ki=2.0, Kd=3.0, POn=0.75 (75% PoE, 25% PoM),
+        outMin -90%, outMax +90%:
+
+    $\eU 1 3 0 0 1.0 2.0 3.0 0.75 -90 90
+
+
+$\eW: enable/disable PIDCtrl
+    Use this command to switch between the old MyoPro algorithm,
+    and the PIDCtrl algorithm. This is the same parameter as the
+    enable-parameter of the $\eU command.
+
+    Example: enable PIDCtrl.
+        Note that this command returns the old setting.
+
+    $\eW 1
+
+$\eX - On-the-fly PID Tuning of Kp(0), Ki(1), Kd(2), POn(3)
+    The PIDCtrl can be tuned on-the-fly, as it is running.
+    The first parameter identifies which of Kp/Ki/Kd/POn
+    to be tuned.  The values are saved in the EEPROM.
+
+    Example: set Kd to 1.45
+
+    $\eX 2 1.45
+
+$\eb - Get additional PID Settings. These parameters are:
+
+      int  errorDeadband
+      int initialPWMstep
+      int setPoint  
+      
+$\ec - Write additional PID Settings. The parameters are:
+
+      int  errorDeadband
+      int initialPWMstep
+      int setPoint
+
+/*------------------------- Additional Notes ---------------------------------*/
+
+Note 1: The commands  'X' and 'Y' gets the ROM Ext Limit percentage and degrees 
+        for the hand (&x) the also for the elbow ($x).
+        Both the hand and elbow have a 0-100% range of motion (ROM). The elbow 
+        has a  range of allowed degrees from 0 to about 130. These reported 
+        degrees  correspond to the elbow brace position. 
+        The degrees values for the hand do not correspond to the hand brace 
+        angle, instead they are essentially the same as the hand range of motion 
+        (ROM).
+
+/*--------------------------------------------------------------------------*/
+/*--------------------- Dual Mode Configurations ---------------------------*/
+/*--------------------------------------------------------------------------*/
+There are 2 Dual Mode related commands:
+
+    $\ez - Gets additional Dual Mode parameters 
+    $\ey - Write additional Dual Mode parameters 
+
+      /*----------------------------------------------------------------*/
+$\ey - Writes 15 Dual Mode parameters and issues an EEPROM command.
+
+      uchar dualModeType
+      float E1_Max
+      float E2_Max
+      int effortDeltaThresholdBicepsOrClose
+      int effortDeltaThresholdTricepsOrOpen
+      int constantVelocity
+      float proportionalMultiplier
+      int sensitivity 
+      int curviness
+      int LowRangeROMdegreeThresholdToEnableHoldPosition  
+      int HighRangeROMdegreeThresholdToEnableHoldPosition
+      uchar hbridgeOverheatPreventionTimerEnabled
+      int timeUntilNoMotorCommand
+      int batteryCurrentThreshold
+      int alarmVolume
+      int writeToEEPROM
+
+
+    dualModeType (0-4 default=0) sets the current dual mode type: 
+      0 = classic (CLASSIC) 
+      1 = classic with position hold (CLASSIC_WITH_POSITION_HOLD) 
+      2 = constant velocity control (CONSTANT_VELOCITY_CONTROL) 
+      3 = proportional velocity control (PROPORTIONAL_VELOCITY_CONTROL)
+      4 = ramped velocity control (RAMPED_VELOCITY_CONTROL)
+    
+    E1_Max and E2_Max (0-200 default=75) specifies the maximum obtainable value 
+    of the Bicep/Tricep EMG RMS value. 
+    
+    effortDeltaThresholdBicepsOrClose and effortDeltaThresholdTricepsOrOpen
+    (0-100 default=20) specifies the minimum EMG effort required 
+    to get the motor to move.     
+     
+    constantVelocity (0-100 default=60) is the constant PWM signal that will be 
+    sent to the motor, when its moving under the CONSTANT_VELOCITY_CONTROL dual 
+    mode.    
+
+    proportionalMultiplier (0-5 default=2.5) is the multiplier for the 
+    PROPORTIONAL_VELOCITY_CONTROL mode. Outside the effort delta threshold 
+    regions, if the dual mode is set to PROPORTIONAL_VELOCITY_CONTROL, the motor 
+    PWM signal is:
+        motorCommand = proportionalMultiplier * absEffortDelta
+    Where, absEffortDelta is the absolute value absolute value of the difference
+    between the two raw efforts.
+
+    sensitivity (1-100 default=20) and curviness (1-10 default=2) are two 
+    parameters that control the motor PWM signal when the dual mode is set to 
+    RAMPED_VELOCITY_CONTROL mode. The motor PWM signal is:    
+        motorCommand = 100 * pow( (absEffortDelta / sensitivity), curviness) 
+    Where, absEffortDelta is the absolute value of the difference between the 
+    two raw efforts.
+    
+    LowRangeROMdegreeThresholdToEnableHoldPosition (0-100 default=15)and 
+    HighRangeROMdegreeThresholdToEnableHoldPosition (0-100 default=3) contain
+    the range-of-motion (ROM) locations in which the hold position algorithms 
+    will be active. With the default values, the hold position will be active
+    whenever the brace is in the 15% to 97% ROM.    
+    
+    hbridgeOverheatPreventionTimerEnabled (0-1 default=1) enables or disables a 
+    feature that protects the control circuit of the MyoPro when it begins to 
+    overheat.
+    
+    timeUntilNoMotorCommand (0-3600 default=10) and batteryCurrentThreshold 
+    (0-1500 default=1000) set the overheat protection thresholds. If the 
+    hbridgeOverheatPreventionTimerEnabled is set to 1 (enabled), the system will 
+    only hold the elbow / hand joint for a certain number of seconds 
+    (specified by the timeUntilNoMotorCommand parameter) when the battery drawn 
+    current has exceeded a specific threshold (defined in mA) by the parameter 
+    batteryCurrentThreshold.
+    
+    alarmVolume (0-50 default=50) is the volume of the piezo buzzer. It 
+    corresponds to a 0-100% PWM signal. A value of 0 is silence, and a value of 
+    50 the maximum volume. 
+    
+    writeToEEPROM (0-1 default=0) specifies if the previous dual mode parameters 
+    will be written (1) or not (0) to the EEPROM    
+    
+    Example: dualModeType=ramped (4)
+             E1_Max=99.0
+             E2_Max=101.0
+             effortDeltaThresholdBicepsOrClose=19
+             effortDeltaThresholdTricepsOrOpen=21
+             constantVelocity=50
+             proportionalMultiplier=2.0
+             sensitivity=20 
+             curviness=1
+             LowRangeROMdegreeThresholdToEnableHoldPosition=10
+             HighRangeROMdegreeThresholdToEnableHoldPosition=10
+             hbridgeOverheatPreventionTimerEnabled=0 (no)
+             timeUntilNoMotorCommand=10
+             batteryCurrentThreshold=1000
+             alarmVolume=50
+             writeToEEPROM=1 (yes)
+    
+             $\ey 4 99.0 101.0 19 21 50 2.0 20 1 10 10 0 10 1000 50 1   
+
+    Note: In MyConfig, there are 6 dual mode configuration trackbars ("Speed",
+    "Prop", "Ramp", "Gain Bicep", "Gain Triceps" and "HoldForce"). Most of these 
+    trackbars perform a simple linear map transformation between the parameters
+    that are specified via this protocol. In this section, the  linear map 
+    transformation is defined as follows: 
+       map(value, fromLow, fromHigh, toLow, toHigh)    
+    - "Speed" Trackbar (1 to 20) where, 
+       constantVelocity = map(trackbarValue, 1, 20, 30, 100) 
+    - "Prop" Trackbar (1 to 20) where, 
+       proportionalMultiplier = map(trackbarValue,1, 20, 0.25, 3.5)
+    - "Ramp" Trackbar (1 to 20) where, 
+       sensitivity = map(trackbarValue,1, 20, 100, 20) 
+    - "Hold Force" Trackbar (1 to 20) where,
+        PidVals.Kp = map(trackbarValue,1, 20, 1, 8) 
+        PidVals.Ki = map(trackbarValue,1, 20, 0.25, 2), if trackbarValue <= 10
+        PidVals.Ki = 0, if trackbarValue > 10
+
+      /*----------------------------------------------------------------*/
+$\ez - Returns 15 dual mode parameters
+     
+     
+/*--------------------------------------------------------------------------*/
+/*-------------------- Donning Mode Configurations -------------------------*/
+/*--------------------------------------------------------------------------*/
+There are 2 Donning Mode related commands:
+
+    $\eG - Gets Donning Mode parameters 
+    $\eL - Writes Donning Mode parameters 
+
+      /*----------------------------------------------------------------*/
+$\eL - Writes the following 5 Donning Mode parameters
+
+      int donningAssistStateActive
+      int donningPosition
+      float donningKp
+      int donningModeAssistanceAllowed
+      int donningMelodyVolume                      
+    
+
+    activateDonningAssist (0-1), this is not exactly a parameter, but a donning
+    start/stop command. This should always be set to 0, unless we want to 
+    trigger the donning operation.    
+
+    donningPosition (0-100 default=20) specifies the position (0 to 100%) that 
+    the elbow/hand will go during the donning operation.
+
+    donningKp (0-200 default=2) specifies the elbow (or hand) pid KP. This is
+    listed as the Hold Force on MyConfig.    
+    
+    donningModeAssistanceAllowed(0-1 default=0) specifies if the donning mode is 
+    enabled for the elbow/hand. 
+         
+    donningMelodyVolume (0-50 default=50) is the volume of the piezo buzzer. It 
+    corresponds to a 0-100% PWM signal. A value of 0 is silence, and a value of 
+    50 the maximum volume. 
+
+    Example: activateDonningAssist=0 (do not start donning mode)
+             donningPosition=30 (30% ROM)
+             donningKp=2.0 (20%)
+             donningModeAssistanceAllowed=1 (yes)
+             donningMelodyVolume=50
+
+             $\eL 0 30 2.0 1 50 
+
+      /*----------------------------------------------------------------*/
+$\eG - Reads the 5 Donning Mode parameters
+     
+     

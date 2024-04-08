@@ -1,0 +1,14 @@
+Random csv files on my portable hhd. 
+Below are some info on the purpose of each folder.
+
+conditional-testing:
+From summer 2023 when testing if-else statements.
+
+intention-testing:
+-From summer 2023 when testing intention reading.
+
+left_data_collection_9-26-2023:
+-Data collection from early Fall 2023 with left arm.
+
+random:
+-random data I found.
